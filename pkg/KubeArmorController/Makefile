@@ -154,6 +154,17 @@ install-crd: manifests kustomize ## Install CRDs into the K8s cluster specified 
 uninstall-crd: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
+client/gen:
+	@echo "--> Running code-generator to generate clients"
+	# prepare tool code-generator
+	@mkdir -p ./tmp/code-generator
+	@git clone https://github.com/kubernetes/code-generator.git --branch v0.22.1 --single-branch  ./tmp/code-generator
+	# generate client
+	./tmp/code-generator/generate-groups.sh "all" github.com/kubearmor/KubeArmor/pkg/KubeArmorController/client github.com/kubearmor/KubeArmor/pkg/KubeArmorController/api security.kubearmor.com:v1 --go-header-file hack/boilerplate.go.txt
+	# check generated client at ./pkg/client
+	@cp -r ./github.com/kubearmor/KubeArmor/pkg/KubeArmorController/client/* ./client/
+	@rm -rf ./github.com ./tmp/code-generator
+
 CONTROLLER_GEN = $(GOBIN)/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
